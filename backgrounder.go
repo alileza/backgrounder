@@ -5,13 +5,17 @@ import (
 	"time"
 )
 
+var (
+	ErrTimeout = errors.New("Process timeout.")
+)
+
 type Backgrounder struct {
 	err    chan error
 	Errors error
 	Count  int
 }
 
-func NewBackgrounder() *Backgrounder {
+func New() *Backgrounder {
 	bg := &Backgrounder{}
 	bg.err = make(chan error)
 	return bg
@@ -36,10 +40,13 @@ func (bg *Backgrounder) CatchErr(timeouts ...time.Duration) []error {
 	for {
 		select {
 		case err := <-bg.err:
-			errs = append(errs, err)
+			if err != nil {
+				errs = append(errs, err)
+			}
 			bg.Count--
 		case <-time.After(timeout):
-			errs = append(errs, errors.New("Process timeout."))
+			errs = append(errs, ErrTimeout)
+			break
 		}
 		if iteration >= bg.Count {
 			break
